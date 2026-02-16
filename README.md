@@ -10,7 +10,7 @@ We provide code for:
 - Training 3PoinTr track-conditioned policies
 - Evaluation and simulation rollouts
 
-Real-world data is also provided and compatible with the training scripts.
+Real-world data is also provided and compatible with the training scripts: https://huggingface.co/datasets/ahung0/3PoinTr/tree/main
 
 ## Installation
 
