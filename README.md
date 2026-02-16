@@ -1,6 +1,6 @@
 # 3PoinTr
 
-**[Paper](link)** | **[Project Page](link)** | **[Data](link)**
+**[Paper](link)** | **[Project Page](https://adamhung60.github.io/3PoinTr/)** | **[Data](https://huggingface.co/datasets/ahung0/3PoinTr/tree/main)**
 
 This repository contains the official implementation of **3PoinTr**.
 
@@ -10,7 +10,7 @@ We provide code for:
 - Training 3PoinTr track-conditioned policies
 - Evaluation and simulation rollouts
 
-Real-world data is also provided and compatible with the training scripts: https://huggingface.co/datasets/ahung0/3PoinTr/tree/main
+Real-world data is also provided at the link above and compatible with the training scripts: 
 
 ## Installation
 
