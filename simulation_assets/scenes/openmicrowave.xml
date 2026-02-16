@@ -1,0 +1,121 @@
+<mujoco model="xarm7 openmicrowave scene">
+  <!-- Include the base scene with robot arm -->
+  <include file="base.xml"/>
+
+  <!-- Don't override meshdir - base.xml needs its meshdir for robot meshes -->
+  <!-- MuJoCo resolves mesh paths relative to the meshdir set in base.xml (../ufactory_xarm7/assets) -->
+  <!-- So paths must be relative to that meshdir, not to this XML file -->
+  <!-- From meshdir (simulation_assets/ufactory_xarm7/assets), microwave OBJs are at ../../objects/microwave/textured_objs/ -->
+  <!-- MuJoCo resolves texture paths in MTL files relative to the OBJ file's directory -->
+  <!-- So ../images/texture_0.png in MTL resolves correctly to simulation_assets/objects/microwave/images/texture_0.png -->
+  <asset>
+    <!-- Microwave textures - paths relative to this XML file -->
+    <!-- Converted from JPG to PNG for MuJoCo compatibility -->
+    <texture name="microwave_texture_0" type="2d" file="../objects/microwave/images/texture_0.png" width="128" height="128"/>
+    <texture name="microwave_texture_1" type="2d" file="../objects/microwave/images/texture_1_mono.png" width="143" height="399"/>
+    <texture name="microwave_texture_2" type="2d" file="../objects/microwave/images/texture_2.png" width="128" height="128"/>
+    
+    <!-- Materials that reference the textures -->
+    <!-- texture_0: door frames 1, 6, 7 and handles 19, 20, 21 -->
+    <material name="microwave_material_0" texture="microwave_texture_0" texuniform="true"/>
+    <!-- texture_1: frame meshes 3, 6, 7, 36 -->
+    <material name="microwave_material_1" texture="microwave_texture_1" texuniform="true"/>
+    <!-- texture_2: door frames 9-17 -->
+    <material name="microwave_material_2" texture="microwave_texture_2" texuniform="true"/>
+    
+    <!-- Microwave door meshes (link_0) - paths relative to meshdir (../ufactory_xarm7/assets) -->
+    <!-- MuJoCo automatically loads textures from MTL files referenced by OBJ meshes -->
+    <!-- Texture paths in MTL files (../images/texture_X.png) resolve relative to OBJ file location -->
+    <!-- Scale factor: 0.31 to convert from oversized mesh units to realistic microwave size -->
+    <!-- Door frame meshes -->
+    <mesh name="door_frame_1" file="../../objects/microwave/textured_objs/original-1.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="door_frame_2" file="../../objects/microwave/textured_objs/original-2.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="door_frame_9" file="../../objects/microwave/textured_objs/original-9.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="door_frame_10" file="../../objects/microwave/textured_objs/original-10.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="door_frame_11" file="../../objects/microwave/textured_objs/original-11.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="door_frame_12" file="../../objects/microwave/textured_objs/original-12.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="door_frame_13" file="../../objects/microwave/textured_objs/original-13.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="door_frame_14" file="../../objects/microwave/textured_objs/original-14.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="door_frame_15" file="../../objects/microwave/textured_objs/original-15.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="door_frame_16" file="../../objects/microwave/textured_objs/original-16.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="door_frame_17" file="../../objects/microwave/textured_objs/original-17.obj" scale="0.31 0.31 0.31"/>
+    <!-- Door glass -->
+    <mesh name="door_glass" file="../../objects/microwave/textured_objs/original-5.obj" scale="0.31 0.31 0.31"/>
+    <!-- Door handle meshes -->
+    <mesh name="door_handle_19" file="../../objects/microwave/textured_objs/original-19.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="door_handle_20" file="../../objects/microwave/textured_objs/original-20.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="door_handle_21" file="../../objects/microwave/textured_objs/original-21.obj" scale="0.31 0.31 0.31"/>
+    
+    <!-- Microwave frame meshes (link_1) -->
+    <mesh name="frame_3" file="../../objects/microwave/textured_objs/original-3.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="frame_6" file="../../objects/microwave/textured_objs/original-6.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="frame_7" file="../../objects/microwave/textured_objs/original-7.obj" scale="0.31 0.31 0.31"/>
+    <mesh name="frame_36" file="../../objects/microwave/textured_objs/new-36.obj" scale="0.31 0.31 0.31"/>
+  </asset>
+
+  <default>
+    <geom density="200"/>
+  </default>
+
+  <worldbody>
+    <!-- Giant grey wall behind the microwave -->
+    <!-- <geom name="back_wall" type="box" pos="2.0 0 0.75" size="0.05 10.0 2.0" rgba="0.5 0.5 0.5 1" contype="1" conaffinity="1"/> -->
+    
+    <!-- Microwave base body (with free joint for randomization) -->
+    <!-- Position microwave in front of robot arm -->
+    <!-- Free joint uses qpos for absolute pose; keep body pos at origin -->
+    <body name="microwave_base" pos="0 0 0">
+      <freejoint/>
+      <!-- Microwave frame/body (link_1) - fixed joint with rotation -->
+      <!-- Rotate 90° about X, 90° about Y, 180° about Z (MuJoCo euler rotations apply in ZYX order) -->
+      <body name="microwave_frame" euler="-1.5708 -1.5708 3.14159">
+        <!-- Frame geoms -->
+        <geom name="frame_geom_3" type="mesh" mesh="frame_3" material="microwave_material_1" contype="1" conaffinity="1"/>
+        <geom name="frame_geom_6" type="mesh" mesh="frame_6" material="microwave_material_1" contype="1" conaffinity="1"/>
+        <geom name="frame_geom_7" type="mesh" mesh="frame_7" material="microwave_material_1" contype="1" conaffinity="1"/>
+        <geom name="frame_geom_36" type="mesh" mesh="frame_36" material="microwave_material_1" contype="1" conaffinity="1"/>
+        
+        <!-- Door (link_0) - revolute joint -->
+        <!-- Joint origin relative to parent (link_1): xyz="-0.7682425612805752 0.4679230000000003 0.4374772029288201" -->
+        <!-- Scaled by 0.31 to match mesh scale -->
+        <!-- Joint axis: xyz="0 -1 0" (rotation around negative Y axis) -->
+        <!-- Joint limits: lower="0.0" upper="1.5707963267948966" (0 to π/2 radians = 0 to 90 degrees) -->
+        <body name="microwave_door" pos="-0.238155194 0.14505613 0.135617933">
+          <joint name="door_joint" type="hinge" axis="0 -1 0" range="0 1.5708" damping="0.01"/>
+          
+          <!-- Door geoms with offset relative to door body -->
+          <!-- Visual/collision offset: xyz="0.7682425612805752 -0.4679230000000003 -0.4374772029288201" -->
+          <!-- Scaled by 0.31 to match mesh scale -->
+          <!-- Door frame geoms with materials assigned -->
+          <!-- texture_0: frames 1, 6, 7 -->
+          <geom name="door_frame_geom_1" type="mesh" mesh="door_frame_1" material="microwave_material_0" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <!-- frame_2 has no texture (solid color) -->
+          <geom name="door_frame_geom_2" type="mesh" mesh="door_frame_2" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <!-- Note: door_frame_6 and door_frame_7 use original-6 and original-7 which have texture_0, but they're not in the door body -->
+          <!-- texture_2: frames 9-17 -->
+          <geom name="door_frame_geom_9" type="mesh" mesh="door_frame_9" material="microwave_material_2" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <geom name="door_frame_geom_10" type="mesh" mesh="door_frame_10" material="microwave_material_2" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <geom name="door_frame_geom_11" type="mesh" mesh="door_frame_11" material="microwave_material_2" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <geom name="door_frame_geom_12" type="mesh" mesh="door_frame_12" material="microwave_material_2" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <geom name="door_frame_geom_13" type="mesh" mesh="door_frame_13" material="microwave_material_2" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <geom name="door_frame_geom_14" type="mesh" mesh="door_frame_14" material="microwave_material_2" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <geom name="door_frame_geom_15" type="mesh" mesh="door_frame_15" material="microwave_material_2" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <geom name="door_frame_geom_16" type="mesh" mesh="door_frame_16" material="microwave_material_2" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <geom name="door_frame_geom_17" type="mesh" mesh="door_frame_17" material="microwave_material_2" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <!-- door_glass (original-5) has no texture (solid color) -->
+          <geom name="door_glass_geom" type="mesh" mesh="door_glass" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <!-- texture_0: handles 19, 20, 21 -->
+          <geom name="door_handle_geom_19" type="mesh" mesh="door_handle_19" material="microwave_material_0" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <geom name="door_handle_geom_20" type="mesh" mesh="door_handle_20" material="microwave_material_0" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <geom name="door_handle_geom_21" type="mesh" mesh="door_handle_21" material="microwave_material_0" pos="0.238155194 -0.14505613 -0.135617933" contype="1" conaffinity="1"/>
+          <!-- Invisible proxy box to give the gripper a clean contact surface on the handle -->
+          <geom name="door_handle_geom_proxy" type="box" pos="0.39 -.17 0.02" size="0.015 0.1 0.01" contype="1" conaffinity="1" friction="3.0 0.1 0.01" rgba="0 0 0 0"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <keyframe>
+    <key name="scene_home" qpos="0 -.247 0 .909 0 1.15644 0 0 0 0 0 0 0 0 0.63 0.156261 0 1 0 0 0" ctrl="0 -.247 0 .909 0 1.15644 0 0"/>
+  </keyframe>
+</mujoco>

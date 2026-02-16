@@ -1,0 +1,41 @@
+<mujoco model="xarm7 glass scene">
+  <!-- Include the base scene with robot arm -->
+  <include file="base.xml"/>
+
+  <!-- Don't override meshdir - base.xml needs its meshdir for robot meshes -->
+  <!-- MuJoCo resolves mesh paths relative to the meshdir set in base.xml (../ufactory_xarm7/assets) -->
+  <!-- From meshdir (simulation_assets/ufactory_xarm7/assets), glass STL is at ../../objects/glass/ -->
+  <asset>
+    <!-- Glass meshes - paths relative to meshdir (../ufactory_xarm7/assets) -->
+    <!-- Split into 3 parts for better collision detection -->
+    <mesh name="glass_cup_mesh" file="../../objects/glass/cup.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="glass_handle_mesh" file="../../objects/glass/handle.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="glass_base_mesh" file="../../objects/glass/base.stl" scale="0.001 0.001 0.001"/>
+  </asset>
+
+  <default>
+    <!-- global geom defaults (floor, glass, etc) -->
+    <geom 
+      density="500"
+      solref="0.001 3.0"  
+    />
+  </default>
+
+  <worldbody>
+    <!-- Glass body (with free joint for randomization) -->
+    <!-- Position glass in front of robot arm, laying horizontal on the floor -->
+    <body name="glass_base" pos="0.5 0.0 0.0">
+      <freejoint/>
+      <!-- Cup part -->
+      <geom name="glass_cup_geom" type="mesh" mesh="glass_cup_mesh" rgba="0.7 0.9 1.0 0.6" contype="1" conaffinity="1"/>
+      <!-- Handle part -->
+      <geom name="glass_handle_geom" type="mesh" mesh="glass_handle_mesh" rgba="0.7 0.9 1.0 0.6" contype="1" conaffinity="1"/>
+      <!-- Base part -->
+      <geom name="glass_base_geom" type="mesh" mesh="glass_base_mesh" rgba="0.7 0.9 1.0 0.6" contype="1" conaffinity="1"/>
+    </body>
+  </worldbody>
+
+  <keyframe>
+    <key name="scene_home" qpos="0 -.247 0 .909 0 1.15644 0 0 0 0 0 0 0 0.5 0.0 0.0 1 0 0 0" ctrl="0 -.247 0 .909 0 1.15644 0 0"/>
+  </keyframe>
+</mujoco>

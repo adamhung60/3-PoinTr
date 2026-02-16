@@ -1,0 +1,22 @@
+<mujoco model="xarm7 blockstack scene">
+  <!-- Include the base scene with robot arm -->
+  <include file="base.xml"/>
+
+  <worldbody>
+    <!-- Green box (large, side length 0.1) -->
+    <body name="green_box" pos="0.2 -0.25 0.1">
+      <freejoint/>
+      <geom name="green_box_geom" type="box" size="0.05 0.05 0.05" rgba="0 1 0 1" mass="0.1"/>
+    </body>
+    
+    <!-- Blue box (small, side length 0.06) -->
+    <body name="blue_box" pos="0.45 0.25 0.05">
+      <freejoint/>
+      <geom name="blue_box_geom" type="box" size="0.03 0.03 0.03" rgba="0 0 1 1" mass="0.05"/>
+    </body>
+  </worldbody>
+
+  <keyframe>
+    <key name="scene_home" qpos="0 -.247 0 .909 0 1.15644 0 0 0 0 0 0 0 0.35 -0.1 0.05 1 0 0 0 0.35 0.1 0.03 1 0 0 0" ctrl="0 -.247 0 .909 0 1.15644 0 0"/>
+  </keyframe>
+</mujoco>

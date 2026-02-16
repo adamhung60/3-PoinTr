@@ -1,0 +1,76 @@
+<mujoco model="xarm7 base scene">
+  <!-- Include the robot arm from ufactory_xarm7 directory -->
+  <!-- Note: xarm7.xml has meshdir="assets" which resolves relative to its own location -->
+  <include file="../ufactory_xarm7/xarm7.xml"/>
+  
+  <!-- Override compiler meshdir after include to ensure correct path resolution -->
+  <compiler meshdir="../ufactory_xarm7/assets"/>
+
+  <statistic center="0.2 0 0.4" extent=".65"/>
+
+  <visual>
+    <headlight diffuse="0.4 0.4 0.4" ambient="0.2 0.2 0.2" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="150" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+
+    <texture name="concrete" type="2d"
+           file="../objects/concrete_texture.png"
+           width="1024" height="1024"/>
+    
+    <texture name="wood" type="2d"
+           file="../objects/wood_texture.png"
+           width="1024" height="1024"/>
+
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+      
+    <material name="concrete" texture="concrete" texuniform="true" texrepeat="0.3 0.3" reflectance="0.01"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+    <material name="wood" texture="wood" texuniform="true" texrepeat="1.0 1.0" reflectance="0.0"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="wood"/>
+    <geom type="cylinder" size=".06 .06" pos="0 0 .06" rgba="1 1 1 1"/>
+    
+    <!-- Front camera: position and orientation from MuJoCo viewer -->
+    <camera name="blockstack" pos="0.760 -0.030 0.620" xyaxes="0.038 0.999 -0.000 -0.798 0.030 0.602"/>
+    <camera name="pickpot" pos="0.782 -0.017 0.647" xyaxes="0.021 1.000 -0.000 -0.838 0.017 0.546"/>
+
+
+    <!-- <camera name="openmicrowave" pos="0.002 -0.577 1.188" xyaxes="0.747 -0.665 0.000 0.511 0.574 0.640"/> -->
+    <!-- <camera name="openmicrowave" pos="0.100 0.902 0.855" xyaxes="-0.780 -0.626 -0.000 0.395 -0.493 0.775"/> -->
+    <!-- <camera name="openmicrowave" pos="-0.483 1.032 0.948" xyaxes="-0.610 -0.792 -0.000 0.420 -0.324 0.848"/> -->
+    <!-- <camera name="openmicrowave" pos="-0.301 1.220 1.153" xyaxes="-0.730 -0.683 0.000 0.366 -0.391 0.844"/> -->
+    <!-- <camera name="openmicrowave" pos="-0.033 0.915 1.041" xyaxes="-0.678 -0.735 0.000 0.513 -0.473 0.716"/> -->
+    <!-- <camera name="openmicrowave" pos="-0.117 0.180 1.346" xyaxes="-0.150 -0.989 0.000 0.808 -0.122 0.577"/> -->
+    <!-- <camera name="openmicrowave" pos="-0.374 -0.627 0.318" xyaxes="0.623 -0.782 -0.000 0.116 0.093 0.989"/> -->
+    <!-- <camera name="openmicrowave" pos="-0.128 0.713 1.300" xyaxes="-0.580 -0.814 0.000 0.618 -0.441 0.651"/> -->
+    <camera name="openmicrowave" pos="-0.174 0.391 0.600" xyaxes="-0.274 -0.962 -0.000 0.470 -0.134 0.872"/>
+
+    <!-- Camera for opendoor scene - positioned to view door and robot -->
+    <camera name="opendoor" pos="-0.391 0.747 0.714" xyaxes="-0.489 -0.872 -0.000 0.263 -0.147 0.954"/>
+
+
+
+    <!-- <camera name="glass" pos="0.980 -0.007 0.768" xyaxes="-0.012 1.000 -0.000 -0.673 -0.008 0.740"/> -->
+    <camera name="glass" pos="0.888 -0.004 0.688" xyaxes="0.026 1.000 -0.000 -0.694 0.018 0.720"/>
+
+
+
+
+
+
+
+  </worldbody>
+
+  <keyframe>
+    <!-- Base scene home keyframe removed - specific scenes should define their own "home" and "scene_home" keyframes -->
+    <!-- The base_home keyframe was incompatible with scenes that add additional joints (like door joints) -->
+  </keyframe>
+</mujoco>

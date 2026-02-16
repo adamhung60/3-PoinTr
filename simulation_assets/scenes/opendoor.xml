@@ -1,0 +1,94 @@
+<mujoco model="xarm7 opendoor scene">
+      <!-- Include the base scene with robot arm -->
+      <include file="base.xml"/>
+    
+      <default>
+        <geom density="200"/>
+      </default>
+    
+      <asset>
+        <!-- IMPORTANT: use cube textures for box primitives (avoids 2D projection stretching) -->
+        <texture name="door_wood_tex" type="cube" file="../objects/door.png"/>
+        <texture name="wall_paint_tex" type="cube" file="../objects/wall.png"/>
+    
+        <!-- If you later want a procedural metal, you can still do builtin -->
+        <texture name="handle_metal_tex" type="2d" builtin="flat"
+                 rgb1="0.7 0.7 0.72" rgb2="0.6 0.6 0.62" width="128" height="128"/>
+    
+        <!-- texuniform="true" => texrepeat is repeats-per-meter -->
+        <!-- Door face is 0.36m wide x 0.65m tall.
+             To get ~1 tile across that face: repeat = (1/size_in_meters). -->
+        <material name="door_wood"
+                  texture="door_wood_tex"
+                  texuniform="false"
+                  texrepeat="1 1"
+                  reflectance="0.1"/>
+    
+        <!-- Wall tiles once every 0.5m => 2 repeats per meter -->
+        <material name="wall_paint"
+                  texture="wall_paint_tex"
+                  texuniform="false"
+                  texrepeat="1 1"
+                  reflectance="0.05"/>
+    
+        <!-- Dark brown for door handle -->
+        <material name="handle_dark_brown" rgba="0.15 0.08 0.03 1" reflectance="0.1"/>
+      </asset>
+    
+      <worldbody>
+        <!-- Door assembly base body (with freejoint for randomization) -->
+        <body name="door_base" pos="0 0 0">
+          <freejoint/>
+    
+          <!-- Wall frame around the door opening -->
+          <!-- Door opening: 0.36m wide (Y: -0.18 to +0.18), 0.65m tall (Z: 0 to 0.65) -->
+    
+          <!-- Left wall section -->
+          <!-- contype="2" conaffinity="3" - collides with floor (type 1) but not door (type 4) -->
+          <!-- Very high density (10000) so wall doesn't move when robot pulls door -->
+          <geom name="wall_left" type="box" pos="0 -0.93 0.6" size="0.04 0.75 0.6"
+                material="wall_paint" contype="2" conaffinity="3" density="10000"/>
+    
+          <!-- Right wall section -->
+          <geom name="wall_right" type="box" pos="0 0.93 0.6" size="0.04 0.75 0.6"
+                material="wall_paint" contype="2" conaffinity="3" density="10000"/>
+    
+          <!-- Top wall section -->
+          <geom name="wall_top" type="box" pos="0 0 0.925" size="0.04 1.68 0.275"
+                material="wall_paint" contype="2" conaffinity="3" density="10000"/>
+    
+          <!-- Door frame (decorative trim around door opening) -->
+          <!-- Visual only - no collisions -->
+          <geom name="frame_left" type="box" pos="0.02 -0.19 0.325" size="0.015 0.015 0.325"
+                rgba="0.3 0.2 0.1 1" contype="0" conaffinity="0"/>
+          <geom name="frame_right" type="box" pos="0.02 0.19 0.325" size="0.015 0.015 0.325"
+                rgba="0.3 0.2 0.1 1" contype="0" conaffinity="0"/>
+          <geom name="frame_top" type="box" pos="0.02 0 0.665" size="0.015 0.205 0.015"
+                rgba="0.3 0.2 0.1 1" contype="0" conaffinity="0"/>
+    
+          <!-- Door body with hinge joint -->
+          <body name="door_panel" pos="0 -0.18 0.325">
+            <joint name="door_joint" type="hinge" axis="0 0 1" range="0 1.5708"
+                   damping="0.01" stiffness="0" springref="0" armature="0.001"/>
+    
+            <!-- Door panel -->
+            <!-- contype="4" so it doesn't collide with wall (type 2) -->
+            <geom name="door_geom" type="box" pos="-0.015 0.18 0" size="0.015 0.18 0.325"
+                  material="door_wood" contype="4" conaffinity="4"/>
+    
+            <!-- Door handle -->
+            <geom name="handle_bar" type="box" pos="-0.0425 0.30 0.05" size="0.0125 0.015 0.06"
+                  material="handle_dark_brown" contype="1" conaffinity="1"
+                  friction="5.0 0.1 0.01" solimp="0.95 0.99 0.001" solref="0.004 1" priority="1"/>
+          </body>
+        </body>
+      </worldbody>
+    
+      <keyframe>
+        <!-- Robot home position + freejoint (pos x,y,z + quat w,x,y,z) + door joint angle (0) -->
+        <!-- qpos: 13 robot + 7 freejoint + 1 door_joint = 21 total -->
+        <key name="scene_home"
+             qpos="0 -.247 0 .909 0 1.15644 0 0 0 0 0 0 0 0.7 0.1 0 1 0 0 0 0"
+             ctrl="0 -.247 0 .909 0 1.15644 0 0"/>
+      </keyframe>
+    </mujoco>

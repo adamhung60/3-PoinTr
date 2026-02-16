@@ -24,5 +24,5 @@ models/
 models_flowonly/
 wandb/
 saved_videos/
-simulation_assets/
+# simulation_assets/
 
