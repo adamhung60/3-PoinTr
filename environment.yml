@@ -1,0 +1,27 @@
+name: 3pointr
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      # Core
+      - numpy
+      - scipy
+      - opencv-python
+      - imageio[ffmpeg]
+      - tqdm
+      - pyyaml
+      - psutil
+      
+      # Deep learning
+      - einops
+      - diffusers
+      - wandb
+      
+      # Simulation
+      - mujoco
+      
+      # 3D
+      - open3d
