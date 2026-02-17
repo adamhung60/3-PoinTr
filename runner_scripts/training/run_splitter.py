@@ -29,7 +29,6 @@ def main():
             "--dataset", f"data/{dataset_name}",
             "--task-splits", task_splits_json,
             "--seed", "42",
-            "--group-by-prefix",
             "--out-dir", f"data/{dataset_name}",
             "--name", name,
             "--include-first-n", "20",

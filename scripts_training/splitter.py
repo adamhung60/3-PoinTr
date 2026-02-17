@@ -7,22 +7,10 @@ import os
 import re
 import json
 import argparse
-import random
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 
 _TIMESTEP_DIR_RE = re.compile(r"timestep_\d+$")
-
-def _is_demo_dir(path: str) -> bool:
-    """A demo dir contains at least one 'timestep_###' subdirectory."""
-    try:
-        for dn in os.listdir(path):
-            if _TIMESTEP_DIR_RE.match(dn) and os.path.isdir(os.path.join(path, dn)):
-                return True
-    except FileNotFoundError:
-        return False
-    return False
-
 
 def _discover_demo_dirs(root: str) -> List[str]:
     """Recursively find all demo directories under root."""
@@ -37,44 +25,6 @@ def _discover_demo_dirs(root: str) -> List[str]:
             dirnames[:] = []
     demo_dirs.sort()
     return demo_dirs
-
-
-def _group_key_by_demo(demo_dir: str) -> str:
-    """
-    Group demos by stripping a trailing numeric suffix from the leaf name.
-    E.g.,  'task_pick_001' and 'task_pick_002' group together.
-    Returns a stable "parent/prefix" key.
-    """
-    demo_name = os.path.basename(demo_dir.rstrip('/'))
-    parts = demo_name.split('_')
-    if len(parts) >= 2:
-        for i in range(len(parts) - 1, -1, -1):
-            if parts[i].isdigit():
-                parent = os.path.dirname(demo_dir)
-                base = '_'.join(parts[:i])
-                return f"{parent}/{base}"
-    parent = os.path.dirname(demo_dir)
-    return f"{parent}/{demo_name}"
-
-
-def _build_pool(demo_dirs: List[str], group: bool) -> Tuple[List[str], Dict[str, List[str]]]:
-    """
-    Build a sampling pool.
-    If group=True, keys are group-keys and values are lists of demo dirs in that group.
-    If group=False, each demo is its own 'group'.
-    Returns (keys, mapping).
-    """
-    groups: Dict[str, List[str]] = {}
-    if group:
-        for d in demo_dirs:
-            k = _group_key_by_demo(d)
-            groups.setdefault(k, []).append(d)
-    else:
-        for d in demo_dirs:
-            groups[d] = [d]
-    keys = list(groups.keys())
-    keys.sort()
-    return keys, groups
 
 
 def _take_forced_train(
@@ -128,120 +78,6 @@ def _sample_sequential(
     return train_demos, val_demos, test_demos
 
 
-def _sample_exact(
-    all_demo_dirs: List[str],
-    n_train: int,
-    n_val: int,
-    n_test: int,
-    seed: int,
-    group: bool,
-    label_for_errors: str
-) -> Tuple[List[str], List[str], List[str]]:
-    """
-    Sample EXACTLY n_train, n_val, and n_test demos (counts are per-demo, not per-group),
-    without overlap, optionally respecting groups.
-
-    Strategy:
-      1) Build pool (grouped or not).
-      2) Shuffle pool keys with RNG.
-      3) First, fill TEST by adding whole groups until we reach or exceed n_test.
-         If we would exceed the exact count, we try to take a subset from the *last* group.
-      4) Remove used demos, then fill VAL similarly.
-      5) Remove used demos, then fill TRAIN similarly.
-
-    If exact counts are impossible (not enough demos), raises ValueError.
-    """
-    keys, groups = _build_pool(all_demo_dirs, group=group)
-    rng = random.Random(seed)
-    rng.shuffle(keys)
-
-    flat = [d for k in keys for d in groups[k]]
-    total = len(flat)
-    if n_train + n_val + n_test > total:
-        raise ValueError(
-            f"[{label_for_errors}] Requested train+val+test={n_train+n_val+n_test} but only {total} demos available."
-        )
-
-    picked_test: List[str] = []
-    picked_val: List[str] = []
-    picked_train: List[str] = []
-
-    remaining_groups = list(keys)
-
-    # Helper to take exactly K demos into 'picked', respecting grouping but allowing partial from last group.
-    def take_exact(k: int, picked: List[str], stage_name: str):
-        nonlocal remaining_groups
-        if k == 0:
-            return
-        count = 0
-        taken_groups = []
-        for gi, gk in enumerate(remaining_groups):
-            g_demos = groups[gk]
-            if count + len(g_demos) < k:
-                picked.extend(g_demos)
-                count += len(g_demos)
-                taken_groups.append(gk)
-            else:
-                # Need only a subset from this last group
-                needed = k - count
-                # shuffle within-group for fairness but determinism (seeded)
-                gd = list(g_demos)
-                rng.shuffle(gd)
-                picked.extend(gd[:needed])
-                # Remove the used subset from the group; keep remaining in the pool if any
-                remain = gd[needed:]
-                if remain:
-                    groups[gk] = remain
-                else:
-                    taken_groups.append(gk)
-                count = k
-                break
-        # Remove fully consumed groups
-        remaining_groups = [gk for gk in remaining_groups if gk not in taken_groups]
-        if count != k:
-            raise ValueError(
-                f"[{label_for_errors}/{stage_name}] Unable to pick exactly {k} demos; only {count} available."
-            )
-
-    # Fill TEST first (held-out data that's never seen during training)
-    take_exact(n_test, picked_test, "test")
-
-    # Fill VAL next (used for validation during training)
-    still_available = []
-    for gk in remaining_groups:
-        still_available.extend(groups[gk])
-    if len(still_available) < n_val:
-        raise ValueError(
-            f"[{label_for_errors}] After test selection, only {len(still_available)} demos remain for val, "
-            f"but {n_val} requested."
-        )
-    take_exact(n_val, picked_val, "val")
-
-    # Fill TRAIN last
-    still_available = []
-    for gk in remaining_groups:
-        still_available.extend(groups[gk])
-    if len(still_available) < n_train:
-        raise ValueError(
-            f"[{label_for_errors}] After test+val selection, only {len(still_available)} demos remain for train, "
-            f"but {n_train} requested."
-        )
-    take_exact(n_train, picked_train, "train")
-
-    # Sanity: no overlap, exact sizes
-    all_picked = set(picked_test) | set(picked_val) | set(picked_train)
-    assert len(all_picked) == n_train + n_val + n_test, f"[{label_for_errors}] Overlap detected between splits!"
-    assert len(picked_test) == n_test, f"[{label_for_errors}] test size mismatch"
-    assert len(picked_val) == n_val, f"[{label_for_errors}] val size mismatch"
-    assert len(picked_train) == n_train, f"[{label_for_errors}] train size mismatch"
-
-    # Shuffle output order deterministically for cosmetic non-grouped ordering
-    rng.shuffle(picked_test)
-    rng.shuffle(picked_val)
-    rng.shuffle(picked_train)
-    return picked_train, picked_val, picked_test
-
-
 def parse_args():
     p = argparse.ArgumentParser("Create a fixed-size train/val/test split JSON per task (actions & flows)")
 
@@ -251,19 +87,13 @@ def parse_args():
 
     p.add_argument("--task-splits", type=str, required=True,
                    help="JSON dict mapping task names to split counts. "
-                        "6-value format: [train_actions, val_actions, test_actions, train_no_actions, val_no_actions, test_no_actions]. "
-                        "4-value format (no test): [train_actions, val_actions, train_no_actions, val_no_actions]. "
+                        "Format: [train_actions, val_actions, test_actions, train_no_actions, val_no_actions, test_no_actions]. "
                         "Example: '{\"blockstack\": [20, 10, 10, 450, 25, 25]}'")
 
     # Behavior
     p.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility.")
-    p.add_argument("--group-by-prefix", action="store_true",
-                   help="Group demos by prefix (prevents near-duplicates from splitting across sets).")
     p.add_argument("--include-first-n", type=int, default=0,
                    help="Force the first N demos (sorted by path) into the TRAIN split for each task.")
-    p.add_argument("--randomize", action="store_true",
-                   help="Randomly shuffle demos before splitting. If not set, splits are done sequentially (train first, then val, then test).")
-
     # Output
     p.add_argument("--out-dir", type=str, required=True, help="Directory to save the split JSON.")
     p.add_argument("--name", type=str, default="split",
@@ -284,31 +114,16 @@ def main():
     if not isinstance(task_splits, dict):
         raise ValueError(f"--task-splits must be a JSON dict, got {type(task_splits)}")
 
-    # Validate task splits format and normalize to 6-value format
-    normalized_splits = {}
+    # Validate task splits format
     for task_name, split_tuple in task_splits.items():
-        if not isinstance(split_tuple, list) or len(split_tuple) not in (4, 6):
+        if not isinstance(split_tuple, list) or len(split_tuple) != 6:
             raise ValueError(
-                f"Task '{task_name}' must have a list of 4 or 6 integers. "
-                f"6-value format: [train_actions, val_actions, test_actions, train_no_actions, val_no_actions, test_no_actions]. "
-                f"4-value format: [train_actions, val_actions, train_no_actions, val_no_actions]. "
+                f"Task '{task_name}' must have a list of 6 integers: "
+                f"[train_actions, val_actions, test_actions, train_no_actions, val_no_actions, test_no_actions]. "
                 f"Got {split_tuple}"
             )
         if not all(isinstance(x, int) and x >= 0 for x in split_tuple):
             raise ValueError(f"Task '{task_name}' split values must be non-negative integers, got {split_tuple}")
-        
-        if len(split_tuple) == 4:
-            # Legacy 4-value format: [train_actions, val_actions, train_no_actions, val_no_actions]
-            # No test split
-            train_actions, val_actions, train_no_actions, val_no_actions = split_tuple
-            test_actions, test_no_actions = 0, 0
-        else:
-            # New 6-value format: [train_actions, val_actions, test_actions, train_no_actions, val_no_actions, test_no_actions]
-            train_actions, val_actions, test_actions, train_no_actions, val_no_actions, test_no_actions = split_tuple
-        
-        normalized_splits[task_name] = (train_actions, val_actions, test_actions, train_no_actions, val_no_actions, test_no_actions)
-    
-    task_splits = normalized_splits
 
     # Check that dataset directory exists
     if not os.path.isdir(args.dataset):
@@ -373,27 +188,13 @@ def main():
                 train_actions,
                 f"{task_name}/actions",
             )
-            if args.randomize:
-                # Use deterministic seed based on task name (sum of ord values)
-                task_seed_offset = sum(ord(c) for c in task_name) % 10000
-                sampled_actions_train, task_actions_val, task_actions_test = _sample_exact(
-                    remaining_actions,
-                    n_train=train_actions - len(forced_actions_train),
-                    n_val=val_actions,
-                    n_test=test_actions,
-                    seed=args.seed + task_seed_offset,  # deterministic seed per task
-                    group=args.group_by_prefix,
-                    label_for_errors=f"{task_name}/actions"
-                )
-            else:
-                # Sequential split: train first, then val, then test
-                sampled_actions_train, task_actions_val, task_actions_test = _sample_sequential(
-                    remaining_actions,
-                    n_train=train_actions - len(forced_actions_train),
-                    n_val=val_actions,
-                    n_test=test_actions,
-                    label_for_errors=f"{task_name}/actions"
-                )
+            sampled_actions_train, task_actions_val, task_actions_test = _sample_sequential(
+                remaining_actions,
+                n_train=train_actions - len(forced_actions_train),
+                n_val=val_actions,
+                n_test=test_actions,
+                label_for_errors=f"{task_name}/actions"
+            )
             task_actions_train = forced_actions_train + sampled_actions_train
             all_actions_train.extend(task_actions_train)
             all_actions_val.extend(task_actions_val)
@@ -413,27 +214,13 @@ def main():
                 train_no_actions,
                 f"{task_name}/flows",
             )
-            if args.randomize:
-                # Use deterministic seed based on task name (sum of ord values)
-                task_seed_offset = sum(ord(c) for c in task_name) % 10000
-                sampled_flows_train, task_flows_val, task_flows_test = _sample_exact(
-                    remaining_flows,
-                    n_train=train_no_actions - len(forced_flows_train),
-                    n_val=val_no_actions,
-                    n_test=test_no_actions,
-                    seed=args.seed + task_seed_offset + 10000,  # different seed offset for flows
-                    group=args.group_by_prefix,
-                    label_for_errors=f"{task_name}/flows"
-                )
-            else:
-                # Sequential split: train first, then val, then test
-                sampled_flows_train, task_flows_val, task_flows_test = _sample_sequential(
-                    remaining_flows,
-                    n_train=train_no_actions - len(forced_flows_train),
-                    n_val=val_no_actions,
-                    n_test=test_no_actions,
-                    label_for_errors=f"{task_name}/flows"
-                )
+            sampled_flows_train, task_flows_val, task_flows_test = _sample_sequential(
+                remaining_flows,
+                n_train=train_no_actions - len(forced_flows_train),
+                n_val=val_no_actions,
+                n_test=test_no_actions,
+                label_for_errors=f"{task_name}/flows"
+            )
             task_flows_train = forced_flows_train + sampled_flows_train
             all_flows_train.extend(task_flows_train)
             all_flows_val.extend(task_flows_val)
@@ -474,8 +261,6 @@ def main():
         "flows_test": all_flows_test,
         "meta": {
             "seed": args.seed,
-            "randomize": bool(args.randomize),
-            "group_by_prefix": bool(args.group_by_prefix),
             "include_first_n": args.include_first_n,
             "tasks": task_meta,
             "total_counts": {
