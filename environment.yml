@@ -21,7 +21,7 @@ dependencies:
       - wandb
       
       # Simulation
-      - mujoco
+      - mujoco==3.3.7
       
       # 3D
       - open3d
