@@ -3,7 +3,6 @@
 *.mov
 *.gif
 *.ply
-*.png
 *.jpg
 *.ply
 *.npz
