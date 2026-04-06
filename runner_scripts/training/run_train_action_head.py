@@ -61,7 +61,6 @@ def main():
             "--eval_every", "500",
             "--measure_mujoco_success_rates",
             "--eval_success_rate_every", "5000",
-            "--save_checkpoint_every", "10000",
             "--dataset", f"data/{data}/",
             "--split_file", f"data/{data}/{split_name}.json",
             "--save_video_dir", "training_rollout_videos",

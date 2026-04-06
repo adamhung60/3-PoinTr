@@ -503,31 +503,10 @@ def train(args):
                 best_path,
             )
             print(f"[action-head] Saved new best checkpoint to {best_path} (ee_pos_epe_mm={best_sel:.6f})")
-        
-        # Save last model checkpoint at the end of each epoch
-        checkpoint_args = vars(args).copy()
-        checkpoint_args["diffusion_down_dims"] = tuple(args.diffusion_down_dims)
-        torch.save(
-            {
-                "epoch": epoch,
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "scheduler_state_dict": scheduler.state_dict(),
-                "scaler_state_dict": scaler.state_dict() if hasattr(scaler, "state_dict") else None,
-                "best_sel": best_sel,
-                "best_success_rate": best_success_rate,
-                "args": checkpoint_args,
-                "num_tasks": num_tasks,
-                "id_to_task": id_to_task,
-            },
-            last_path,
-        )
-        if epoch % getattr(args, "eval_every", 100) == 0 or epoch == args.epochs:
-            print(f"[action-head] Saved last checkpoint to {last_path} (epoch={epoch})")
 
-        # Save periodic checkpoint every N epochs (if enabled)
-        if args.save_checkpoint_every > 0 and epoch % args.save_checkpoint_every == 0:
-            periodic_path = os.path.join(model_save_dir, f"epoch_{epoch}.pth")
+        if do_eval:
+            checkpoint_args = vars(args).copy()
+            checkpoint_args["diffusion_down_dims"] = tuple(args.diffusion_down_dims)
             torch.save(
                 {
                     "epoch": epoch,
@@ -541,9 +520,9 @@ def train(args):
                     "num_tasks": num_tasks,
                     "id_to_task": id_to_task,
                 },
-                periodic_path,
+                last_path,
             )
-            print(f"[action-head] Saved periodic checkpoint to {periodic_path}")
+            print(f"[action-head] Saved last checkpoint to {last_path} (epoch={epoch})")
 
     if args.use_wandb:
         wandb.run.summary["best_sel_ee_pos_epe_mm"] = best_sel
@@ -556,7 +535,6 @@ def parse_args():
     parser.add_argument("--pretrained_flow_checkpoint", type=str, default="", help="Deprecated alias for --flow_backbone_checkpoint")
     parser.add_argument("--finetune_flow_backbone", action="store_true", help="Allow gradients to update the flow backbone during action-head training")
     parser.add_argument("--use_flow_only_data", action="store_true", help="Include flow-only data when training the action head")
-    parser.add_argument("--save_checkpoint_every", type=int, default=0, help="Save checkpoint every N epochs (0 = disabled)")
     args = parser.parse_args()
     return args
 
